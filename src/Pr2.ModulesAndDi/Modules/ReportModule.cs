@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Pr2.ModulesAndDi.Core;
 using Pr2.ModulesAndDi.Services;
 
@@ -21,21 +21,38 @@ public sealed class ReportModule : IAppModule
     private sealed class ReportAction : IAppAction
     {
         private readonly IClock _clock;
-        private readonly IStorage _storage;
+        private readonly IPartRepository _partRepository;
+        private readonly IStockRepository _stockRepository;
+        private readonly IAppLogger _appLogger;
 
-        public ReportAction(IClock clock, IStorage storage)
+        public ReportAction(IClock clock, IPartRepository partRepository, IStockRepository stockRepository, IAppLogger appLogger)
         {
             _clock = clock;
-            _storage = storage;
+            _partRepository = partRepository;
+            _stockRepository = stockRepository;
+            _appLogger = appLogger;
         }
 
-        public string Title => "Формирование отчёта";
+        public string Title => "Формирование отчёта по складу";
 
-        public Task ExecuteAsync(CancellationToken cancellationToken)
+        public async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            var count = _storage.GetAll().Count;
-            Console.WriteLine($"Отчёт сформирован, время {_clock.Now}, записей {count}");
-            return Task.CompletedTask;
+            _appLogger.LogMessage($"Начало формирования отчёта по складу, время {_clock.Now}");
+
+            var parts = await _partRepository.GetAllPartsAsync();
+            var stockItems = await _stockRepository.GetAllStockItemsAsync();
+
+            Console.WriteLine("\n--- Отчёт по складу ---");
+            foreach (var part in parts)
+            {
+                var stockItem = stockItems.FirstOrDefault(s => s.PartId == part.Id);
+                var quantity = stockItem?.Quantity ?? 0;
+                var location = stockItem?.Location ?? "N/A";
+                Console.WriteLine($"Запчасть: {part.Name} (Артикул: {part.Article}), Количество: {quantity}, Расположение: {location}");
+            }
+            Console.WriteLine("-----------------------\n");
+
+            _appLogger.LogMessage($"Отчёт по складу успешно сформирован, количество уникальных запчастей: {parts.Count}");
         }
     }
 }

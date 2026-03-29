@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Pr2.ModulesAndDi.Core;
 using Pr2.ModulesAndDi.Services;
 
@@ -17,6 +17,8 @@ public sealed class CoreModule : IAppModule
     {
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IStorage, InMemoryStorage>();
+        services.AddSingleton<IPartRepository, InMemoryPartRepository>();
+        services.AddSingleton<IStockRepository, InMemoryStockRepository>();
     }
 
     public Task InitializeAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
