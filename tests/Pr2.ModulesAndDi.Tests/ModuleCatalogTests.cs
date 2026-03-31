@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Pr2.ModulesAndDi.Core;
 using Xunit;
 
@@ -73,6 +73,35 @@ public sealed class ModuleCatalogTests
         };
 
         await module.InitializeAsync(provider, CancellationToken.None);
+    }
+
+    [Fact]
+    public void Сложный_порядок_запуска_учитывает_разветвленные_зависимости()
+    {
+        // Структура: Core <- Logging, Core <- Validation, Validation <- Export, Export <- Report
+        var core = new FakeModule("Core", Array.Empty<string>());
+        var logging = new FakeModule("Logging", new[] { "Core" });
+        var validation = new FakeModule("Validation", new[] { "Core" });
+        var export = new FakeModule("Export", new[] { "Core", "Validation" });
+        var report = new FakeModule("Report", new[] { "Core", "Export" });
+
+        var all = new Dictionary<string, IAppModule>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Core"] = core,
+            ["Logging"] = logging,
+            ["Validation"] = validation,
+            ["Export"] = export,
+            ["Report"] = report
+        };
+
+        var enabled = new[] { "Report", "Export", "Validation", "Logging", "Core" };
+        var order = ModuleCatalog.BuildExecutionOrder(all, enabled).Select(m => m.Name).ToList();
+
+        // Проверяем относительный порядок:
+        Assert.True(order.IndexOf("Core") < order.IndexOf("Logging"));
+        Assert.True(order.IndexOf("Core") < order.IndexOf("Validation"));
+        Assert.True(order.IndexOf("Validation") < order.IndexOf("Export"));
+        Assert.True(order.IndexOf("Export") < order.IndexOf("Report"));
     }
 
     private sealed class MarkerService { }
