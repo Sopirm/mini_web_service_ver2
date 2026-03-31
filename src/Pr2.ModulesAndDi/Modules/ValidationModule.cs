@@ -35,19 +35,25 @@ public sealed class ValidationModule : IAppModule
         {
             _appLogger.LogMessage("Начало проверки правил данных автозапчастей");
 
-            var newPart = new Part(Guid.NewGuid(), "ART-001", "Масляный фильтр", "Фильтр для двигателя", 15.50m);
-            
-            // Пример валидации: проверка уникальности артикула
-            var existingPart = await _partRepository.GetPartByArticleAsync(newPart.Article);
-            if (existingPart != null)
+            var partsToCreate = new[]
             {
-                _appLogger.LogMessage($"Ошибка валидации: Запчасть с артикулом {newPart.Article} уже существует. (ID: {existingPart.Id})");
-                // throw new InvalidOperationException($"Запчасть с артикулом {newPart.Article} уже существует.");
-            }
-            else
+                new Part(Guid.NewGuid(), "ART-001", "Масляный фильтр", "Фильтр для двигателя", 15.50m),
+                new Part(Guid.NewGuid(), "ART-002", "Тормозные колодки", "Передние тормозные колодки", 45.00m),
+                new Part(Guid.NewGuid(), "ART-003", "Свеча зажигания", "Иридиевая свеча зажигания", 12.80m)
+            };
+
+            foreach (var part in partsToCreate)
             {
-                await _partRepository.AddPartAsync(newPart);
-                _appLogger.LogPartAdded(newPart);
+                var existingPart = await _partRepository.GetPartByArticleAsync(part.Article);
+                if (existingPart != null)
+                {
+                    _appLogger.LogMessage($"Запчасть с артикулом {part.Article} уже существует.");
+                }
+                else
+                {
+                    await _partRepository.AddPartAsync(part);
+                    _appLogger.LogPartAdded(part);
+                }
             }
 
             _appLogger.LogMessage("Проверка правил данных автозапчастей завершена");

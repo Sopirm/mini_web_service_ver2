@@ -21,9 +21,22 @@ public sealed class CoreModule : IAppModule
         services.AddSingleton<IStockRepository, InMemoryStockRepository>();
     }
 
-    public Task InitializeAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    public async Task InitializeAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
-        // Базовый модуль не выполняет действий, он только подготавливает инфраструктуру
-        return Task.CompletedTask;
+        var partRepo = serviceProvider.GetRequiredService<IPartRepository>();
+        var stockRepo = serviceProvider.GetRequiredService<IStockRepository>();
+
+        // Предварительное наполнение данными для демонстрации
+        var p1 = new Part(Guid.NewGuid(), "ART-001", "Масляный фильтр", "Фильтр для двигателя", 15.50m);
+        var p2 = new Part(Guid.NewGuid(), "ART-002", "Тормозные колодки", "Передние тормозные колодки", 45.00m);
+        var p3 = new Part(Guid.NewGuid(), "ART-003", "Свеча зажигания", "Иридиевая свеча зажигания", 12.80m);
+
+        await partRepo.AddPartAsync(p1);
+        await partRepo.AddPartAsync(p2);
+        await partRepo.AddPartAsync(p3);
+
+        await stockRepo.AddStockItemAsync(new StockItem(p1.Id, 10, "Стеллаж A-1"));
+        await stockRepo.AddStockItemAsync(new StockItem(p2.Id, 5, "Стеллаж B-2"));
+        await stockRepo.AddStockItemAsync(new StockItem(p3.Id, 24, "Стеллаж C-3"));
     }
 }
